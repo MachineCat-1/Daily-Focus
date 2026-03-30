@@ -40,6 +40,8 @@ export interface CheckInHabit {
 
 /** dateKey -> 当日已勾选的习惯 id 列表（去重，最多 6 个） */
 export type DailyHabitCheckInMap = Record<string, string[]>;
+/** dateKey -> 当日总结文本 */
+export type DailySummaryMap = Record<string, string>;
 
 export interface AppExport {
   version: 1 | 2;
@@ -56,4 +58,5 @@ export interface AppExport {
   /** v2 */
   checkInHabits?: Record<string, CheckInHabit>;
   dailyCheckIns?: DailyHabitCheckInMap;
+  dailySummaries?: DailySummaryMap;
 }

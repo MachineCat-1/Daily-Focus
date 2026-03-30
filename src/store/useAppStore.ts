@@ -6,6 +6,7 @@ import type {
   CheckInHabit,
   CheckInMap,
   DailyHabitCheckInMap,
+  DailySummaryMap,
   DailyPlan,
   Energy,
   Task,
@@ -29,6 +30,7 @@ interface AppState {
   checkIns: CheckInMap;
   checkInHabits: Record<string, CheckInHabit>;
   dailyCheckIns: DailyHabitCheckInMap;
+  dailySummaries: DailySummaryMap;
 
   addInboxTask: (title: string, energy?: Energy) => string;
   updateTask: (id: string, patch: Partial<Omit<Task, "id">>) => void;
@@ -61,6 +63,7 @@ interface AppState {
   removeCheckInHabit: (id: string) => void;
   toggleHabitToday: (habitId: string) => void;
   clearTodayCheckIns: () => void;
+  setDailySummary: (date: string, text: string) => void;
 
   exportJson: () => string;
   importJson: (raw: string) => { ok: true } | { ok: false; error: string };
@@ -86,6 +89,7 @@ export const useAppStore = create<AppState>()(
       checkIns: {},
       checkInHabits: {},
       dailyCheckIns: {},
+      dailySummaries: {},
 
       addInboxTask: (title, energy = "medium") => {
         const id = createId();
@@ -366,6 +370,20 @@ export const useAppStore = create<AppState>()(
         });
       },
 
+      setDailySummary: (date, text) => {
+        const key = date.trim();
+        if (!key) return;
+        const value = text.trim();
+        set((s) => {
+          if (!value) {
+            if (!s.dailySummaries[key]) return s;
+            const { [key]: _, ...rest } = s.dailySummaries;
+            return { dailySummaries: rest };
+          }
+          return { dailySummaries: { ...s.dailySummaries, [key]: value } };
+        });
+      },
+
       exportJson: () => {
         const s = get();
         const payload: AppExport = {
@@ -380,6 +398,7 @@ export const useAppStore = create<AppState>()(
           energyFilter: s.energyFilter,
           checkInHabits: s.checkInHabits,
           dailyCheckIns: s.dailyCheckIns,
+          dailySummaries: s.dailySummaries,
         };
         return JSON.stringify(payload, null, 2);
       },
@@ -402,6 +421,7 @@ export const useAppStore = create<AppState>()(
           let checkInHabits: Record<string, CheckInHabit> =
             data.checkInHabits ?? {};
           let dailyCheckIns: DailyHabitCheckInMap = data.dailyCheckIns ?? {};
+          let dailySummaries: DailySummaryMap = data.dailySummaries ?? {};
           let checkIns: CheckInMap = {};
 
           if (
@@ -436,6 +456,7 @@ export const useAppStore = create<AppState>()(
             checkIns,
             checkInHabits,
             dailyCheckIns,
+            dailySummaries,
             focusTaskId: null,
           });
           return { ok: true };
@@ -484,6 +505,7 @@ export const useAppStore = create<AppState>()(
         energyFilter: s.energyFilter,
         checkInHabits: s.checkInHabits,
         dailyCheckIns: s.dailyCheckIns,
+        dailySummaries: s.dailySummaries,
       }),
     },
   ),

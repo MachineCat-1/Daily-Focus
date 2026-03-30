@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   buildMonthCells,
   computeAnyHabitStreak,
@@ -21,6 +21,8 @@ export function CheckInPage() {
   const removeCheckInHabit = useAppStore((s) => s.removeCheckInHabit);
   const toggleHabitToday = useAppStore((s) => s.toggleHabitToday);
   const clearTodayCheckIns = useAppStore((s) => s.clearTodayCheckIns);
+  const dailySummaries = useAppStore((s) => s.dailySummaries);
+  const setDailySummary = useAppStore((s) => s.setDailySummary);
 
   const today = todayKey();
   const [cursor, setCursor] = useState(() => {
@@ -31,6 +33,16 @@ export function CheckInPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftColor, setDraftColor] = useState(0);
   const [draftTarget, setDraftTarget] = useState(21);
+  const [selectedDate, setSelectedDate] = useState<string | null>(today);
+  const [summaryDraft, setSummaryDraft] = useState("");
+
+  useEffect(() => {
+    if (!selectedDate) {
+      setSummaryDraft("");
+      return;
+    }
+    setSummaryDraft(dailySummaries[selectedDate] ?? "");
+  }, [selectedDate, dailySummaries]);
 
   const habitsList = useMemo(
     () => Object.values(checkInHabits).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -329,17 +341,23 @@ export function CheckInPage() {
             const show21 = ms.some((m) => m.kind === 21);
             const show7 = ms.some((m) => m.kind === 7);
 
+            const hasSummary = Boolean(dailySummaries[key]);
+
             return (
-              <div
+              <button
+                type="button"
                 key={key}
+                onClick={() => setSelectedDate(key)}
                 className={[
-                  "relative flex aspect-square flex-col overflow-hidden rounded-lg text-[10px] tabular-nums",
+                  "relative flex aspect-square flex-col overflow-hidden rounded-lg text-[10px] tabular-nums transition",
                   ids.length === 0
                     ? "border border-slate-700/80 text-slate-500"
                     : "",
                   isToday
                     ? "ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-950"
                     : "",
+                  selectedDate === key ? "ring-2 ring-violet-400 ring-offset-2 ring-offset-slate-950" : "",
+                  "hover:brightness-110",
                 ].join(" ")}
                 title={key}
               >
@@ -362,6 +380,12 @@ export function CheckInPage() {
                 >
                   {Number(key.slice(8, 10))}
                 </span>
+                {hasSummary && (
+                  <span
+                    className="pointer-events-none absolute right-0.5 top-0.5 size-1.5 rounded-full bg-violet-300"
+                    title="已填写每日总结"
+                  />
+                )}
                 {(show21 || show7) && (
                   <span className="pointer-events-none absolute bottom-0.5 right-0.5 flex gap-0.5">
                     {show21 && (
@@ -382,10 +406,50 @@ export function CheckInPage() {
                     )}
                   </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
+
+        {selectedDate && (
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-slate-200">
+                {selectedDate} 每日总结
+              </p>
+              {dailySummaries[selectedDate] && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSummaryDraft("");
+                    setDailySummary(selectedDate, "");
+                  }}
+                  className="text-xs text-slate-500 hover:text-rose-400"
+                >
+                  清空
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              记录今天做了什么，给自己留一个可回看的片段。
+            </p>
+            <textarea
+              value={summaryDraft}
+              onChange={(e) => setSummaryDraft(e.target.value)}
+              placeholder="例如：完成了需求梳理、专注 2 轮、晚上复盘了卡住点。"
+              className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setDailySummary(selectedDate, summaryDraft)}
+                className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-500"
+              >
+                保存总结
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
           <span>图例：</span>
